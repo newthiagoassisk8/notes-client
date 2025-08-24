@@ -19,8 +19,7 @@ async function addNote(title, content, tags) {
     if (!res.ok) {
         throw new Error("Erro na requisição: " + response.status);
     }
-    const data = await res.json();
-    return data;
+    return;
 }
 
 async function getNotes() {
@@ -30,14 +29,25 @@ async function getNotes() {
             throw new Error("Erro na requisição: " + res.status);
         }
         const data = await res.json();
-        return data?.data ?? []; // garante que data.data existe antes de retornar
+        return data?.data ?? [];
     } catch (error) {
         console.error("Falha ao buscar notas:", err.message);
         return [];
     }
 }
 
+async function deleteNote(noteId) {
+    try {
+        await fetch(`${API_URL}/notes/${noteId}`, { method: "DELETE" });
+        if (!res.ok) {
+            throw new Error("Erro na requisição: ");
+        }
+        return;
+    } catch (error) {
+        console.error("");
+    }
+}
+
 (async () => {
-    const notes = await getNotes();
-    console.log(notes);
+    await getNotes();
 })();
