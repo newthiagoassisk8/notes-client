@@ -1,8 +1,9 @@
 #!/usr/bin/env tsx
-import { loadEnv } from './helpers/envloader';
+import { getHost } from './helpers/envloader';
 
-const env = loadEnv() || {};
-const API_URL = env?.API_URL;
+const HOST = await getHost();
+
+const API_URL = `http://${HOST}:3000/api`;
 
 const DEFAULT_ACTION = 'help';
 const ALLOWED_ACTIONS = [
@@ -30,16 +31,10 @@ const ALLOWED_ACTIONS = [
     '--output',
     '--json',
     '--plain',
-    //
 ];
-
-/*
-@id:nhoizey.gremlins @id:fabiospampinato.vscode-highlight @id:vincaslt.highlight-matching-tag @id:ms-vscode.vscode-typescript-next
-*/
 
 function parseArgs(argv = null) {
     argv = Array.isArray(argv) ? argv : process.argv.slice(2);
-    // argv = [ '--color=true', '--json', '--output=json', '--db-dir=~/.my-notes', '-T', '-q', '-v', './my-dir' ] // REMOVER
 
     let action = null;
     let actionData = null;
@@ -218,6 +213,7 @@ async function getNotes() {
         return [];
     }
 }
+getNotes();
 
 async function deleteNote(parsedArgsData = null) {
     parsedArgsData = getParsedArgsData(parsedArgsData);
@@ -317,4 +313,4 @@ function printHelp(parsedArgsData = null) {
   `);
 }
 
-await main();
+await main()
