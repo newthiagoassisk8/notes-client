@@ -17,6 +17,10 @@ const ALLOWED_ACTIONS = [
     '--add',
     'new',
     '--new',
+    'put',
+    '--put',
+    'update',
+    '--update',
     'delete',
     '--delete',
     'del',
@@ -32,7 +36,7 @@ const ALLOWED_ACTIONS = [
     '--json',
     '--plain',
 ];
-
+// TODO: Tratar entra
 function parseArgs(argv = null) {
     argv = Array.isArray(argv) ? argv : process.argv.slice(2);
 
@@ -74,6 +78,13 @@ function parseArgs(argv = null) {
             i = i || {};
             return i.argAlterKey === 'action';
         }) || null;
+
+    if (action && ALLOWED_ACTIONS.includes(action?.argValue)) {
+        parsedArgv.action = action;
+        parsedArgv.actionData = actionData;
+
+        parsedArgv.parsedFlags.push(actionData);
+    }
 
     if (!action && ALLOWED_ACTIONS.includes(argv[0] || DEFAULT_ACTION)) {
         action = argv[0] || DEFAULT_ACTION;
@@ -165,39 +176,40 @@ async function addNote(parsedArgsData = null) {
         }),
     });
 
+    let createdNoteInfo = await res.json();
+
+    let returnData = res.ok
+        ? {
+              success: true,
+              note: createdNoteInfo,
+          }
+        : {
+              success: false,
+              note: null,
+          };
+
     if (!res.ok) {
-        throw new Error('Erro na requisição: ' + response.status);
+        returnData.message = 'Erro na requisição: ' + response.status;
     }
 
-    let createdNoteInfo = await res.json();
     output = (output || '').toLowerCase().trim() || 'stdout';
 
     if (output && output === 'json') {
-        console.log(
-            JSON.stringify({
-                success: true,
-                note: createdNoteInfo,
-            })
-        );
-        process.exit(0);
+        console.log(JSON.stringify(returnData));
+        process.exit(returnData?.success ? 0 : 17);
     }
 
     if (quietMode) {
-        process.exit(0);
+        process.exit(returnData?.success ? 0 : 17);
     }
 
     if (output && ['plain-text', 'text'].includes(output)) {
-        console.log(
-            JSON.stringify({
-                success: true,
-                note: createdNoteInfo,
-            })
-        );
-        process.exit(0);
+        console.log(JSON.stringify(returnData));
+        process.exit(returnData?.success ? 0 : 17);
     }
 
-    console.log(`✅ Nota criada %s`, createdNoteInfo?.id);
-    process.exit(0);
+    console.log(`✅ Nota atualizada %s`, createdNoteInfo?.id);
+    process.exit(returnData?.success ? 0 : 17);
 }
 
 async function getNotes() {
@@ -213,7 +225,6 @@ async function getNotes() {
         return [];
     }
 }
-getNotes();
 
 async function deleteNote(parsedArgsData = null) {
     parsedArgsData = getParsedArgsData(parsedArgsData);
@@ -241,6 +252,77 @@ async function deleteNote(parsedArgsData = null) {
     }
 }
 
+async function updateNote(parsedArgsData = null) {
+    parsedArgsData = getParsedArgsData(parsedArgsData);
+
+    let quietMode = isQuietMode(parsedArgsData);
+
+    let noteId = getArgData('id')?.argValue;
+    let title = getArgData('title')?.argValue;
+    let output = getArgData('output')?.argValue;
+    let content = getArgData('content')?.argValue;
+    let tags = getArgData('tags')?.argValue;
+
+    title = typeof title === 'string' ? title : null;
+    content = typeof content === 'string' ? content : null;
+    tags = (typeof tags === 'string' ? tags : '')
+        .split(',')
+        .map((i) => i.trim())
+        .filter((i) => /^([a-zA-Z0-9\_\-]){1,}$/g.test(i));
+
+    if (!title || !content || !noteId) {
+        console.error(`Itens obrigatórios: [title, content, noteId]`);
+        process.exit(20);
+    }
+
+    const res = await fetch(`${API_URL}/notes/${noteId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title,
+            content,
+            tags,
+        }),
+    });
+
+    let createdNoteInfo = await res.json();
+
+    let returnData = res.ok
+        ? {
+              success: true,
+              note: createdNoteInfo,
+          }
+        : {
+              success: false,
+              note: null,
+          };
+
+    if (!res.ok) {
+        returnData.message = 'Erro na requisição: ' + response.status;
+    }
+
+    output = (output || '').toLowerCase().trim() || 'stdout';
+
+    if (output && output === 'json') {
+        console.log(JSON.stringify(returnData));
+        process.exit(returnData?.success ? 0 : 17);
+    }
+
+    if (quietMode) {
+        process.exit(returnData?.success ? 0 : 17);
+    }
+
+    if (output && ['plain-text', 'text'].includes(output)) {
+        console.log(JSON.stringify(returnData));
+        process.exit(returnData?.success ? 0 : 17);
+    }
+
+    console.log(`✅ Nota atualizada %s`, createdNoteInfo?.id);
+    process.exit(returnData?.success ? 0 : 17);
+}
+
 async function main() {
     try {
         const parsedArgsData = getParsedArgsData(null);
@@ -253,13 +335,15 @@ async function main() {
         //     parsedFlags,
         // } = parsedArgsData;
 
-        let intentAction = parsedArgsData?.action || parsedArgsData?.actionData?.argAlterKey || DEFAULT_ACTION;
+        let intentAction = parsedArgsData?.action || parsedArgsData?.actionData;
 
-        intentAction = ALLOWED_ACTIONS.includes(intentAction) ? intentAction : DEFAULT_ACTION;
+        intentAction = ALLOWED_ACTIONS.includes(intentAction?.argValue) ? intentAction?.argValue : DEFAULT_ACTION;
 
         switch (intentAction) {
             case 'list':
             case 'ls':
+            case '--list':
+            case '--ls':
                 console.log(await getNotes(parsedArgsData));
                 break;
 
@@ -268,6 +352,13 @@ async function main() {
             case 'new':
             case '--new':
                 await addNote(parsedArgsData);
+                break;
+
+            case 'update':
+            case '--update':
+            case 'put':
+            case '--put':
+                await updateNote(parsedArgsData);
                 break;
 
             case 'delete':
@@ -313,4 +404,4 @@ function printHelp(parsedArgsData = null) {
   `);
 }
 
-await main()
+await main();

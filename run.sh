@@ -6,6 +6,12 @@ execucao_simples_1() {
     tsx ./index.js add --title='Minha nota' --content='Conteúdo de run.sh | via função: execucao_simples_1 '
 }
 
+listagem_simples() {
+    tsx ./index.js ls;
+
+}
+
+
 execucao_simples_quiet_1() {
     tsx ./index.js add --title='Minha nota' --output=quiet --content='Conteúdo de run.sh | via função: execucao_simples_quiet_1 '
 }
@@ -68,12 +74,26 @@ saida_usando_jq_programaticamente() {
     echo ""
 }
 
-######### EXECUTANDO AS FUNÇÕES ###########
 
+####################### Update
+put_saida_simples_com_saida_json() {
+    tsx ./index.js --action=put \
+        --title='Atualização de titulo ' \
+        --id='39321c0f-480d-487c-877a-fe7128f51172' \
+        --output=json \
+        --content='Conteúdo de run.sh' \
+        --tags='teste1,teste2'
+}
+
+
+
+######### EXECUTANDO AS FUNÇÕES ###########
+# listagem_simples
+put_saida_simples_com_saida_json
 # execucao_simples_1
 # saida_simples_com_tags
 # saida_simples_com_saida_json
 # saida_usando_jq_simples
 # execucao_simples_quiet_1
 # execucao_simples_quiet_2
-saida_usando_jq_programaticamente
+# saida_usando_jq_programaticamente
